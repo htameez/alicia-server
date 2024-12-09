@@ -6,6 +6,7 @@ project(alicia-server
 option(BUILD_TESTS "Build tests" ON)
 
 find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
 
 add_subdirectory(3rd-party SYSTEM)
 
