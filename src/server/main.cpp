@@ -1,5 +1,7 @@
 #include "Version.hpp"
 
+#include "Scheduler.hpp"
+
 #include "lobby/LobbyDirector.hpp"
 #include "ranch/RanchDirector.hpp"
 
@@ -14,9 +16,6 @@
 
 #include <memory>
 #include <thread>
-#include <queue> 
-#include <mutex> 
-#include <condition_variable>
 
 #include <iostream>
 namespace
@@ -24,43 +23,22 @@ namespace
 
 std::unique_ptr<alicia::LoginDirector> g_loginDirector;
 std::unique_ptr<alicia::RanchDirector> g_ranchDirector;
-std::queue<std::function<void()>> g_taskQueue; // Task queue to hold lambdas.
-std::mutex g_queueMutex;                      // Mutex for queue access.
-std::condition_variable g_queueCondition;     // For notifying the server thread.
 
 } // namespace
 
 // Adds task to queue
+
+Scheduler g_scheduler;
 void EnqueueTask(std::function<void()> task)
 {
-    {
-        std::lock_guard<std::mutex> lock(g_queueMutex);
-        g_taskQueue.push(std::move(task));
-    }
-    g_queueCondition.notify_one();
-}
-
-// Processes tasks
-void ProcessTasks()
-{
-    while (true) 
-    {
-        std::function<void()> task;
-
-        {
-            std::unique_lock<std::mutex> lock(g_queueMutex);
-            g_queueCondition.wait(lock, [] { return !g_taskQueue.empty(); });
-
-            task = std::move(g_taskQueue.front());
-            g_taskQueue.pop();
-        }
-
-        task();
-    }
+    g_scheduler.EnqueueTask(std::move(task));
 }
 
 int main()
 {
+
+  std::thread taskProcessorThread(&Scheduler::ProcessTasks, &g_scheduler);
+
   // Daily file sink.
   const auto fileSink = std::make_shared<spdlog::sinks::daily_file_sink_mt>("logs/log.log", 0, 0);
 
@@ -270,5 +248,7 @@ int main()
       messengerServer.Host("0.0.0.0", 10032);
     });
 
+  taskProcessorThread.join();
+  
   return 0;
 }
