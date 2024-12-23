@@ -49,10 +49,7 @@ void ProcessTasks()
 
         {
             std::unique_lock<std::mutex> lock(g_queueMutex);
-            g_queueCondition.wait_for(lock, std::chrono::milliseconds(50), [] { return !g_taskQueue.empty(); });
-
-            if (g_taskQueue.empty())
-                continue;
+            g_queueCondition.wait(lock, [] { return !g_taskQueue.empty(); });
 
             task = std::move(g_taskQueue.front());
             g_taskQueue.pop();
