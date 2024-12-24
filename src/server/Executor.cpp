@@ -1,6 +1,7 @@
 #include "server/Executor.hpp"
 
 #include <condition_variable>
+#include <mutex>
 #include <pthread.h>
 #include <queue>
 #include <thread>
@@ -41,7 +42,7 @@ Executor::Executor(uint64_t const timeout) {
       std::function<void()> task;
       {
         // lock queue access mutex
-        std::lock_guard lock(_queueMutex);
+        std::scoped_lock lock(_queueMutex);
 
         if (_queue.empty() && !_shouldRun)
         {
@@ -72,34 +73,36 @@ Executor::Executor(uint64_t const timeout) {
         continue;
       }
 
-      if (timeout > 0)
+      if (timeout == 0)
+        return;
+
+      std::mutex mutex;
+      std::unique_lock lock(mutex);
+
+      // wait for timeout milliseconds before terminating the execution thread
+      if (condition.wait_for(lock, std::chrono::milliseconds(timeout)) == std::cv_status::timeout)
       {
-        std::mutex mutex;
-        std::unique_lock lock(mutex);
-
-        // wait for timeout milliseconds before terminating the execution thread
-        if (condition.wait_for(lock, std::chrono::milliseconds(timeout)) == std::cv_status::timeout)
+        if (pthread_cancel(taskThread) != 0)
         {
-          if (pthread_cancel(taskThread) != 0)
-          {
-            //TODO: log error
-            exit(0XDEADBEEF);
-          }
-
-          void * ret;
-
-          // the only way to know if the thread was cancelled it to join with it, and compare the return value to PTHREAD_CANCELED
-          if (pthread_join(taskThread, &ret) != 0)
-          {
-            //TODO: log error
-            exit(0XDEADBEEF);
-          }
-
-          if (ret == PTHREAD_CANCELED)
-          {
-            //TODO: log canceled thread
-          }
+          //TODO: log error
+          exit(0XDEAD);
         }
+
+        void * ret;
+
+        // the only way to know if the thread was cancelled it to join with it, and compare the return value to PTHREAD_CANCELED
+        if (pthread_join(taskThread, &ret) != 0)
+        {
+          //TODO: log error
+          exit(0XDEAD);
+        }
+
+        if (ret == PTHREAD_CANCELED)
+        {
+          exit(0xDEAD);
+        }
+
+        free(ret);
       }
     }
   });
