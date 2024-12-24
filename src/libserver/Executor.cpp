@@ -1,4 +1,6 @@
-#include "server/Executor.hpp"
+#include "libserver/Executor.hpp"
+
+#include "spdlog/spdlog.h"
 
 #include <condition_variable>
 #include <mutex>
@@ -69,7 +71,7 @@ Executor::Executor(uint64_t const timeout) {
       pthread_t taskThread;
       if (pthread_create(&taskThread, nullptr, &task_executor, &param) != 0)
       {
-        //TODO: log error
+        spdlog::error("pthread_create failed: {}", strerror(errno));
         continue;
       }
 
@@ -84,7 +86,7 @@ Executor::Executor(uint64_t const timeout) {
       {
         if (pthread_cancel(taskThread) != 0)
         {
-          //TODO: log error
+          spdlog::error("pthread_cancel failed: {}", strerror(errno));
           exit(0XDEAD);
         }
 
@@ -93,16 +95,19 @@ Executor::Executor(uint64_t const timeout) {
         // the only way to know if the thread was cancelled it to join with it, and compare the return value to PTHREAD_CANCELED
         if (pthread_join(taskThread, &ret) != 0)
         {
-          //TODO: log error
+          spdlog::error("pthread_join failed: {}", strerror(errno));
           exit(0XDEAD);
         }
 
         if (ret == PTHREAD_CANCELED)
         {
+          spdlog::error("task was cancelled, timeout reached");
+          //free(ret);
+          // i'm pretty sure free needs to be called, but this throws sigsegv
           exit(0xDEAD);
         }
 
-        free(ret);
+        //free(&ret);
       }
     }
   });
