@@ -50,7 +50,7 @@ public:
 
 private:
   std::atomic<bool> _shouldRun = true;
-  std::atomic<bool> _change = false;
+  std::atomic<bool> _notification = false;
 
   std::thread _executor;
 

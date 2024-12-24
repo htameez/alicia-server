@@ -37,7 +37,7 @@ Executor::Executor(uint64_t const timeout) {
     while (true)
     {
       // await internal change
-      _change.wait(false);
+      _notification.wait(false);
 
       std::function<void()> task;
       {
@@ -51,7 +51,7 @@ Executor::Executor(uint64_t const timeout) {
 
         if (_queue.empty())
         {
-          _change = false; // this will await changes
+          _notification = false; // this will await changes
           continue;
         }
 
@@ -112,8 +112,8 @@ Executor::~Executor() {
   _shouldRun = false;
 
   // notify of internal change (_shouldRun changed)
-  _change = true;
-  _change.notify_one();
+  _notification = true;
+  _notification.notify_one();
 
   _executor.join();
 }
@@ -131,8 +131,8 @@ void Executor::execute(std::function<void()>const & function)
   _queue.push(function);
 
   // notify of internal change (_queue updated)
-  _change = true;
-  _change.notify_one();
+  _notification = true;
+  _notification.notify_one();
 }
 
 }
