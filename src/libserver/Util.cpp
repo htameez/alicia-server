@@ -82,7 +82,7 @@ asio::ip::address_v4 ResolveHostName(const std::string& host)
 
   asio::io_context ioContext;
   asio::ip::tcp::resolver resolver(ioContext);
-  auto endpoints = resolver.resolve(host);
+  auto endpoints = resolver.resolve(host, "http");
 
   for (const auto& endpoint : endpoints)
   {

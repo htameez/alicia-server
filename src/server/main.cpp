@@ -52,32 +52,36 @@ int main()
 
   g_dataDirector = std::make_unique<alicia::DataDirector>();
 
+
   // Lobby director thread.
-  std::jthread lobbyThread(
+  std::thread lobbyThread(
     [&settings]()
-    {
-      g_loginDirector = std::make_unique<alicia::LobbyDirector>(
+    {g_loginDirector = std::make_unique<alicia::LobbyDirector>(
         *g_dataDirector,
         settings._lobbySettings);
     });
+  // Make sure to join the thread at the end of its lifecycle
+  lobbyThread.join();
 
   // Ranch director thread.
-  std::jthread ranchThread(
+  std::thread ranchThread(
     [&settings]()
     {
       g_ranchDirector = std::make_unique<alicia::RanchDirector>(
         *g_dataDirector,
         settings._ranchSettings);
     });
+  ranchThread.join();
 
   // Messenger thread.
-  std::jthread messengerThread(
+  std::thread messengerThread(
     [&settings]()
     {
       alicia::CommandServer messengerServer("Messenger");
       // TODO: Messenger
       messengerServer.Host(boost::asio::ip::address_v4::any(), 10032);
     });
+  messengerThread.join();
 
   return 0;
 }
