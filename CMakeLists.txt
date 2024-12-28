@@ -13,30 +13,31 @@ target_compile_features(project-properties
 # Alicia server library
 add_library(alicia-libserver STATIC)
 target_sources(alicia-libserver
-        PUBLIC src/libserver/alicia.cpp  src/libserver/mapping.cpp)
+    PUBLIC src/libserver/alicia.cpp src/libserver/mapping.cpp)
+
 target_include_directories(alicia-libserver
-        PUBLIC include/)
+    PUBLIC include/)
+
 target_link_libraries(alicia-libserver
-        PUBLIC project-properties Boost::headers)
+    PUBLIC project-properties Boost::headers Ws2_32 Mswsock)
 
 # Alicia 1.0 server executable
 add_executable(alicia1-server)
 target_sources(alicia1-server
-        PRIVATE src/server/main.cpp)
+    PRIVATE src/server/main.cpp)
 target_link_libraries(alicia1-server
-        PRIVATE project-properties alicia-libserver)
+    PRIVATE project-properties alicia-libserver Ws2_32 Mswsock)
 target_compile_definitions(alicia1-server PUBLIC ALICIA_PROTOCOL=1)
 
 # Alicia 2.0 server executable
 add_executable(alicia2-server)
 target_sources(alicia2-server
-        PRIVATE src/server/main.cpp)
+    PRIVATE src/server/main.cpp)
 target_link_libraries(alicia2-server
-        PRIVATE project-properties alicia-libserver)
+    PRIVATE project-properties alicia-libserver Ws2_32 Mswsock)
 target_compile_definitions(alicia2-server PUBLIC ALICIA_PROTOCOL=2)
 
-
-if (BUILD_TESTS) 
-        enable_testing()
-        add_subdirectory(tests)
+if (BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()
